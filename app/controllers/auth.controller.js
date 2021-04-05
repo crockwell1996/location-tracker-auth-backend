@@ -10,7 +10,8 @@ exports.signup = (req, res) => {
     const user = new User({
         username: req.body.username,
         email: req.body.email,
-        password: bcrypt.hashSync(req.body.password, 8)
+        password: bcrypt.hashSync(req.body.password, 8),
+        locations: []
     });
 
     user.save((err, user) => {
@@ -94,16 +95,24 @@ exports.signin = (req, res) => {
             });
 
             let authorities = [];
-
+            // Store user roles in array to present in response body
             for (let i = 0; i < user.roles.length; i++) {
                 authorities.push("ROLE_" + user.roles[i].name.toUpperCase());
             }
+
+            let locations = [];
+            // Store user locations in array to present in response body
+            for (let i = 0; i < user.locations.length; i++) {
+                locations.push(user.locations[i]);
+            }
+
             res.status(200).send({
                 id: user._id,
                 username: user.username,
                 email: user.email,
                 roles: authorities,
-                accessToken: token
+                accessToken: token,
+                locations: locations,
             });
         });
 };

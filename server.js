@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // simple route
 app.get("/", (req, res) => {
-    res.json({ message: "Welcome to Location Tracker Auth Backend application." });
+    res.json({ message: "Welcome to Location Tracker Auth application." });
 });
 
 const Role = db.role;
