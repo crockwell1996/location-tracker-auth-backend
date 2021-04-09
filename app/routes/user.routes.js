@@ -33,4 +33,16 @@ module.exports = function(app) {
         [authJwt.verifyToken, authJwt.isAdmin],
         controller.adminApp
     );
+
+    app.get(
+        "/api/test/admin/manageroles",
+        [authJwt.verifyToken, authJwt.isAdmin],
+        controller.adminAppRoles
+    );
+
+    app.put(
+        "/api/test/admin/manageroles",
+        [authJwt.verifyToken, authJwt.isAdmin],
+        controller.adminAppRoles
+    );
 };

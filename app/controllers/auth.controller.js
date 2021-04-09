@@ -50,6 +50,23 @@ exports.signup = (req, res) => {
                 }
 
                 user.roles = [role._id];
+                // If first user, make admin
+                User.estimatedDocumentCount( (err, count) => {
+                    if (err){
+                        res.status(500).send({ message: err });
+                    } else {
+                        if (!count) {
+                            Role.findOne({name: "admin"}, (err, role) => {
+                                if (err) {
+                                    res.status(500).send({ message: err });
+                                    return;
+                                } else {
+                                    user.roles.push(role._id);
+                                }
+                            });
+                        }
+                    }
+                });
                 user.save(err => {
                     if (err) {
                         res.status(500).send({ message: err });
