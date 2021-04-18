@@ -1,5 +1,6 @@
 const db = require("../models");
 const User = db.user;
+const Role = db.role;
 
 exports.allAccess = (req, res) => {
     res.status(200).send("Public Content.");
@@ -46,7 +47,7 @@ exports.userAppLocation = (req, res) => {
             if (req.body.id) {
                 // Check if location (by id) exists.
                 if(!user.locations.filter((location) => location._id.toString() === req.body.id).length) {
-                    res.send({message: `Location with id: ${req.body.id} does not exist.`});
+                    res.status(500).send({message: `Location with id: ${req.body.id} does not exist.`});
                     return;
                 }
                 user.locations = user.locations.filter((location) => {
@@ -106,40 +107,85 @@ exports.adminApp = (req, res) => {
 };
 
 exports.adminAppRoles = (req, res) => {
-    if (req.method === "GET") {
-        User.find({
-            roles: {$exists: true}
-        },{
-            _id: 1,
-            username: 1,
-            roles: 1
-        }).exec((err, users) => {
-            if (err) {
-                return res.status(500).send({message: err});
-            }
-            res.send({message: users});
-        });
-    }
-    if (req.method === "PUT") {
-        if (req.body.username) {
-            User.findOne({username: req.body.username}).exec((err, user) => {
-                if (err) {
-                    return res.status(500).send({message: err});
-                } else if (user) {
-                    const reqBodRoles = req.body.roles? req.body.roles : user.roles;
-                    user.roles = reqBodRoles;
-                    user.save(err => {
+    User.findById(req.userId).exec((err, user) => {
+        if (err) {
+            res.status(500).send({message: err});
+            return;
+        }
+        if (req.method === "GET") {
+            User.find({
+                roles: {$exists: true}
+            }, {
+                _id: 1,
+                username: 1,
+                roles: 1
+            })
+                .populate("roles", "-__v")
+                .exec((err, users) => {
+                    if (err) {
+                        return res.status(500).send({message: err});
+                    }
+                    // Empty object stores assignable roles and users.
+                    const responseObj = {};
+                    Role.find(
+                        {name: {$in: ["admin","user"]}},
+                        {"__v": 0}
+                    ).exec((err, roles) => {
                         if (err) {
                             return res.status(500).send({message: err});
                         }
-                        res.send({message: `User: ${user.username} roles updated to: ${user.roles}`});
+                        responseObj.users = users;
+                        responseObj.roles = roles;
+                        res.send(responseObj);
                     });
-                } else {
-                    return res.send({message: `No user found by username: ${req.body.username}`});
-                }
-            });
+                });
         }
-    }
+        if (req.method === "PUT") {
+            const roleData = req.body.users;
+            if (roleData) {
+                let successResponse = '';
+                roleData.forEach((userObj) => {
+                    User.findById(userObj.id.trim())
+                        .populate("roles", "-__v")
+                        .exec((err, user) => {
+                            if (err) {
+                                return res.status(500).send({message: err});
+                            } else if (user) {
+                                Role.find(
+                                    {name: {$in: ["admin","user"]}}
+                                ).exec((roleErr, roleRes) => {
+                                    if (roleErr) {
+                                        return res.status(500).send({message: err});
+                                    }
+                                    const newUserRoles = [];
+                                    roleRes.forEach((roleDoc) => {
+                                        userObj.roles.forEach((roleObj) => {
+                                            if (roleObj.selected && (roleDoc.name === roleObj.name)) {
+                                                newUserRoles.push(roleDoc._id);
+                                            }
+                                        });
+                                    });
+                                    const currentRoles = user.roles.map((roleObj) => roleObj._id);
+                                    //Check if assigned roles are different than current roles
+                                    if (!(JSON.stringify(currentRoles.sort()) === JSON.stringify(newUserRoles.sort()))) {
+                                        user.roles = newUserRoles;
+                                        user.save(err => {
+                                            if (err) {
+                                                return res.status(500).send({message: err});
+                                            }
+                                            successResponse += `User: ${user.username} roles updated to: ${newUserRoles}\n`;
+                                        });
+                                    }
+                                });
+                            } else {
+                                successResponse += `No user found by username: ${req.body.username}\n`;
+                            }
+                        });
+                });
+                res.send({message: successResponse});
+            }
+        }
+    });
 };
 
 exports.moderatorApp = (req, res) => {
