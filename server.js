@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const db = require("./app/models");
 const dbConfig = require("./app/config/db.config");
 const cors = require("cors");
+require('dotenv').config();
 
 const path = __dirname + '/app/views/';
 
@@ -11,7 +12,7 @@ const app = express();
 app.use(express.static(path));
 
 let corsOptions = {
-    origin: "http://localhost:8081"
+    origin: process.env.URL_ORIGIN,
 };
 
 app.use(cors(corsOptions));
@@ -24,13 +25,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // simple route
 app.get("/", (req, res) => {
-    res.json({ message: "Welcome to Location Tracker Auth Backend application." });
+    res.json({ message: "Welcome to Location Tracker Auth application." });
 });
 
 const Role = db.role;
+const connectLocalString = `mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`;
+const connectRemoteString =
+    `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_CLUSTER}.huxko.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
 
 db.mongoose
-    .connect(`mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`, {
+    .connect(`${connectRemoteString}`, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     })

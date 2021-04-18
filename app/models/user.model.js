@@ -11,6 +11,13 @@ const User = mongoose.model(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Role"
             }
+        ],
+        locations: [
+            {
+                longitude: Number,
+                latitude: Number,
+                timeStamp: Date,
+            }
         ]
     })
 );

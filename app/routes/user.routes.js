@@ -14,6 +14,14 @@ module.exports = function(app) {
 
     app.get("/api/test/user", [authJwt.verifyToken], controller.userApp);
 
+    app.get("/api/test/user/locations", [authJwt.verifyToken], controller.userAppLocations);
+
+    app.post("/api/test/user/location", [authJwt.verifyToken], controller.userAppLocation);
+
+    app.delete("/api/test/user/location", [authJwt.verifyToken], controller.userAppLocation);
+
+    app.put("/api/test/user/username", [authJwt.verifyToken], controller.userAppUsername);
+
     app.get(
         "/api/test/mod",
         [authJwt.verifyToken, authJwt.isModerator],
@@ -24,5 +32,17 @@ module.exports = function(app) {
         "/api/test/admin",
         [authJwt.verifyToken, authJwt.isAdmin],
         controller.adminApp
+    );
+
+    app.get(
+        "/api/test/admin/manageroles",
+        [authJwt.verifyToken, authJwt.isAdmin],
+        controller.adminAppRoles
+    );
+
+    app.put(
+        "/api/test/admin/manageroles",
+        [authJwt.verifyToken, authJwt.isAdmin],
+        controller.adminAppRoles
     );
 };
