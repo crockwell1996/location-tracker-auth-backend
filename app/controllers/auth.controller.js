@@ -16,69 +16,76 @@ exports.signup = (req, res) => {
 
     user.save((err, user) => {
         if (err) {
-            res.status(500).send({ message: err });
+            res.status(500).send({message: err});
             return;
         }
 
         if (req.body.roles) {
             Role.find(
                 {
-                    name: { $in: req.body.roles }
+                    name: {$in: req.body.roles}
                 },
                 (err, roles) => {
                     if (err) {
-                        res.status(500).send({ message: err });
+                        res.status(500).send({message: err});
                         return;
                     }
 
                     user.roles = roles.map(role => role._id);
                     user.save(err => {
                         if (err) {
-                            res.status(500).send({ message: err });
+                            res.status(500).send({message: err});
                             return;
                         }
 
-                        res.send({ message: "User was registered successfully!" });
+                        res.send({message: "User was registered successfully!"});
                     });
                 }
             );
         } else {
-            Role.findOne({ name: "user" }, (err, role) => {
+            User.estimatedDocumentCount((err, count) => {
                 if (err) {
-                    res.status(500).send({ message: err });
-                    return;
-                }
-
-                user.roles = [role._id];
-                // If first user, make admin
-                User.estimatedDocumentCount( (err, count) => {
-                    if (err){
-                        res.status(500).send({ message: err });
+                    res.status(500).send({message: err});
+                } else {
+                    if (!count) {
+                        // If first user, make admin
+                        Role.find({$in: {name: ["admin", "user"]}}, (err, roles) => {
+                            if (err) {
+                                res.status(500).send({message: err});
+                                return;
+                            } else {
+                                user.roles = roles.map(roleObj => roleObj._id);
+                                user.save(err => {
+                                    if (err) {
+                                        res.status(500).send({message: err});
+                                        return;
+                                    }
+                                    res.send({message: "User was registered successfully!"});
+                                });
+                            }
+                        });
                     } else {
-                        if (!count) {
-                            Role.findOne({name: "admin"}, (err, role) => {
+                        // New subsequent users get user role on signup
+                        Role.findOne({name: "user"}, (err, role) => {
+                            if (err) {
+                                res.status(500).send({message: err});
+                                return;
+                            }
+                            user.roles = [role._id];
+                            user.save(err => {
                                 if (err) {
-                                    res.status(500).send({ message: err });
+                                    res.status(500).send({message: err});
                                     return;
-                                } else {
-                                    user.roles.push(role._id);
                                 }
+                                res.send({message: "User was registered successfully!"});
                             });
-                        }
+                        });
                     }
-                });
-                user.save(err => {
-                    if (err) {
-                        res.status(500).send({ message: err });
-                        return;
-                    }
-
-                    res.send({ message: "User was registered successfully!" });
-                });
+                }
             });
         }
     });
-};
+}
 
 exports.signin = (req, res) => {
     User.findOne({
