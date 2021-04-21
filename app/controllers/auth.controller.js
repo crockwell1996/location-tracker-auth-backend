@@ -16,60 +16,32 @@ exports.signup = (req, res) => {
 
     user.save((err, user) => {
         if (err) {
-            res.status(500).send({message: err});
-            return;
-        }
-
-        if (req.body.roles) {
-            Role.find(
-                {
-                    name: {$in: req.body.roles}
-                },
-                (err, roles) => {
-                    if (err) {
-                        res.status(500).send({message: err});
-                        return;
-                    }
-
-                    user.roles = roles.map(role => role._id);
-                    user.save(err => {
-                        if (err) {
-                            res.status(500).send({message: err});
-                            return;
-                        }
-
-                        res.send({message: "User was registered successfully!"});
-                    });
-                }
-            );
+            return res.status(500).send({message: err});
         } else {
             User.estimatedDocumentCount((err, count) => {
                 if (err) {
                     res.status(500).send({message: err});
                 } else {
-                    if (!count) {
+                    if (count === 1) {
                         // If first user, make admin
-                        Role.find({$in: {name: ["admin", "user"]}}, (err, roles) => {
-                            if (err) {
-                                res.status(500).send({message: err});
-                                return;
-                            } else {
+                        Role.find({name: {$in: ['admin','user']}}, (err, roles) => {
+                            if (!err) {
                                 user.roles = roles.map(roleObj => roleObj._id);
-                                user.save(err => {
-                                    if (err) {
-                                        res.status(500).send({message: err});
-                                        return;
+                                user.save(saveErr => {
+                                    if (saveErr) {
+                                        return res.status(500).send({message: err});
                                     }
                                     res.send({message: "User was registered successfully!"});
                                 });
+                            } else {
+                                return res.status(500).send({message: err});
                             }
                         });
                     } else {
                         // New subsequent users get user role on signup
                         Role.findOne({name: "user"}, (err, role) => {
                             if (err) {
-                                res.status(500).send({message: err});
-                                return;
+                                return res.status(500).send({message: err});
                             }
                             user.roles = [role._id];
                             user.save(err => {

@@ -3,16 +3,30 @@ const bodyParser = require("body-parser");
 const db = require("./app/models");
 const dbConfig = require("./app/config/db.config");
 const cors = require("cors");
+const { MetadataService } = require("aws-sdk");
 require('dotenv').config();
-
+    /*async function determineHost () {
+        const meta = new MetadataService();
+        await meta.request('/latest/meta-data/public-ipv4', (err, data) => {
+            if (err) {
+                console.log('No AWS metadata found.');
+                console.log(`Falling back on default domain - ${process.env.URL_LOC_ORIGIN}.`);
+                return process.env.URL_LOC_ORIGIN;
+            }
+            else {
+                console.log(`Successfully retrieved metadata - public-ipv4: ${data}.`);
+                return `http://${data}:8081`;
+            }
+        });
+    }*/
 const path = __dirname + '/app/views/';
 
 const app = express();
 
 app.use(express.static(path));
 
-let corsOptions = {
-    origin: process.env.URL_ORIGIN,
+const corsOptions = {
+    origin: process.env.URL_HOST_ORIGIN,
 };
 
 app.use(cors(corsOptions));
@@ -29,17 +43,25 @@ app.get("/", (req, res) => {
 });
 
 const Role = db.role;
-const connectLocalString = `mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`;
-const connectRemoteString =
-    `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_CLUSTER}.huxko.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
+
+let connectString = '';
+if (dbConfig.DBENV === 'local') {
+    connectString = `mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`;
+} else if (dbConfig.DBENV === 'production') {
+    connectString =
+        `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_CLUSTER}.huxko.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+} else {
+    console.log(`No valid db env referenced: "${dbConfig.DBENV}."`);
+    console.log('Terminating program.');
+}
 
 db.mongoose
-    .connect(`${connectRemoteString}`, {
+    .connect(`${connectString}`, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     })
     .then(() => {
-        console.log("Successfully connect to MongoDB.");
+        console.log(`Successfully connected to ${dbConfig.DBENV} MongoDB.`);
         initial();
     })
     .catch(err => {
