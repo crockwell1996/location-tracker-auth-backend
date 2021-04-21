@@ -5,20 +5,12 @@ const dbConfig = require("./app/config/db.config");
 const cors = require("cors");
 const { MetadataService } = require("aws-sdk");
 require('dotenv').config();
-    /*async function determineHost () {
-        const meta = new MetadataService();
-        await meta.request('/latest/meta-data/public-ipv4', (err, data) => {
-            if (err) {
-                console.log('No AWS metadata found.');
-                console.log(`Falling back on default domain - ${process.env.URL_LOC_ORIGIN}.`);
-                return process.env.URL_LOC_ORIGIN;
-            }
-            else {
-                console.log(`Successfully retrieved metadata - public-ipv4: ${data}.`);
-                return `http://${data}:8081`;
-            }
-        });
-    }*/
+
+// Currently testing only.
+(async () => {
+    const awsMetaData = await determineHost();
+    console.log(awsMetaData);
+})();
 const path = __dirname + '/app/views/';
 
 const app = express();
@@ -116,6 +108,21 @@ function initial() {
 
                 console.log("added 'admin' to roles collection");
             });
+        }
+    });
+}
+
+function determineHost () {
+    const meta = new MetadataService();
+    meta.request('/latest/meta-data/public-ipv4', (err, data) => {
+        if (err) {
+            console.log('No AWS metadata found.');
+            console.log(`Falling back on default domain - ${process.env.URL_LOC_ORIGIN}.`);
+            return process.env.URL_LOC_ORIGIN;
+        }
+        else {
+            console.log(`Successfully retrieved metadata - public-ipv4: ${data}.`);
+            return `http://${data}:8081`;
         }
     });
 }
